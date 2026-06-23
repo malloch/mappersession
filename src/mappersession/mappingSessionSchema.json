@@ -1,5 +1,5 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$schema": "https://json-schema.org/draft/2026-06/schema",
     "$id": "http://example.com/example.json",
     "title": "Mapping Session",
     "description": "A libmapper mapping session",
@@ -137,14 +137,29 @@
                             "TCP"
                         ]
                     },
-                    "scope": {
+                    "allow_origin": {
                         "type": "array",
-                        "description": "Devices in the scope of the map",
+                        "description": "Devices allowed as instance origins for the map",
                         "items": {
                             "type": "string",
-                            "description": "Device names in OSC form",
+                            "description": "Device names in OSC form, 'all', or 'none'",
                             "examples": [
-                                "Mapper4Live.1"
+                                "Mapper4Live.1",
+                                "all",
+                                "none"
+                            ]
+                        }
+                    },
+                    "block_origin": {
+                        "type": "array",
+                        "description": "Devices blocked as instance origins for the map",
+                        "items": {
+                            "type": "string",
+                            "description": "Device names in OSC form, 'all', or 'none'",
+                            "examples": [
+                                "Mapper4Live.1",
+                                "all",
+                                "none"
                             ]
                         }
                     },

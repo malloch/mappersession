@@ -14,7 +14,7 @@ else:
     import select
 import itertools, signal
 
-current_fileversion = "2.4"
+current_fileversion = "2.5"
 g = None
 staging_thread = None
 stop_session = False
@@ -99,7 +99,10 @@ def save(filename="", description="", values=[], view_name="", views=[], graph=N
                 newMap[key] = val.name
             elif key == "protocol":
                 newMap[key] = val.name
-            elif key == "scope":
+            elif key == "allow_origin":
+                if val is not None:
+                    newMap[key] = [dev[mpr.Property.NAME] for dev in val]
+            elif key == "block_origin":
                 if val is not None:
                     newMap[key] = [dev[mpr.Property.NAME] for dev in val]
             elif key == "status":
@@ -222,25 +225,44 @@ def try_make_maps(graph, maps, device_map=None):
                             new_map[mpr.Property.PROTOCOL] = mpr.Map.Protocol.UDP
                         elif val == 'tcp' or val == 'TCP':
                             new_map[mpr.Property.PROTOCOL] = mpr.Map.Protocol.TCP
-                    elif key == "scope":
-                        # TODO: Remove existing scopes?
+                    elif key == "allow_origin":
+                        # TODO: Remove existing property value?
 
-                        # Map scope property may need to be translated!
-                        for scope in map["scope"]:
+                        # Map allow_origin property may need to be translated!
+                        for origin in map["allow_origin"]:
                             src_dev_names = [sig_name.split('/', 1)[0] for sig_name in map["sources"]]
-                            if scope in src_dev_names:
-                                idx = [sig_name.split('/', 1)[0] for sig_name in map["sources"]].index(scope)
+                            if origin in src_dev_names:
+                                idx = [sig_name.split('/', 1)[0] for sig_name in map["sources"]].index(origin)
                                 # Look up corresponding device in actual map.
                                 # Use src_list here since order may be different in new_map.signals()
-                                new_map.add_scope(src_list[idx].device())
-                            elif scope == map["destinations"][0].split('/', 1)[0]:
-                                new_map.add_scope(dst.device())
+                                new_map.allow_origin(src_list[idx].device())
+                            elif origin == map["destinations"][0].split('/', 1)[0]:
+                                new_map.allow_origin(dst.device())
                             else:
-                                dev = graph.devices().filter(mpr.Property.NAME, scope)
+                                dev = graph.devices().filter(mpr.Property.NAME, origin)
                                 if dev:
-                                    new_map.add_scope(dev.next())
+                                    new_map.allow_origin(dev.next())
                                 else:
-                                    print("  failed to find scope device named '{0}'".format(scope))
+                                    print("  failed to find origin device named '{0}'".format(origin))
+                    elif key == "block_origin":
+                        # TODO: Remove existing property value?
+
+                        # Map block_origin property may need to be translated!
+                        for origin in map["block_origin"]:
+                            src_dev_names = [sig_name.split('/', 1)[0] for sig_name in map["sources"]]
+                            if origin in src_dev_names:
+                                idx = [sig_name.split('/', 1)[0] for sig_name in map["sources"]].index(origin)
+                                # Look up corresponding device in actual map.
+                                # Use src_list here since order may be different in new_map.signals()
+                                new_map.block_origin(src_list[idx].device())
+                            elif origin == map["destinations"][0].split('/', 1)[0]:
+                                new_map.block_origin(dst.device())
+                            else:
+                                dev = graph.devices().filter(mpr.Property.NAME, origin)
+                                if dev:
+                                    new_map.block_origin(dev.next())
+                                else:
+                                    print("  failed to find origin device named '{0}'".format(origin))
                     elif key == "session":
                         # TODO: session property should be an array
                         tags = new_map['session']
@@ -547,6 +569,9 @@ def upgrade_json(session_json):
                     newMap["destinations"] = tmpSrcs
                 if val == "linear": # 2.2
                     newMap["expression"] = "y=linear(x,-,-,-,-)"
+            elif key == "scope": # <= 2.4
+                newMap[mpr.Property.ALLOW_ORIGIN] = val
+                newMap[mpr.Property.BLOCK_ORIGIN] = "all"
             else:
                 newMap[key] = val
         if version <= 2.2:
