@@ -107,7 +107,7 @@ def save(filename="", description="", values=[], view_name="", views=[], graph=N
                     newMap[key] = [dev[mpr.Property.NAME] for dev in val]
             elif key == "status":
                 newMap[key] = val.name
-            elif key == "is_local" or key == "num_sigs_in" or key == "session":
+            elif key == "is_local" or key == "num_sigs_in" or key == "session" or key == "id":
                 pass
             else:
                 newMap[key] = val
@@ -511,32 +511,40 @@ def upgrade_json(session_json):
         return
     print("Loading legacy file with version: ", version)
     print("Consider re-saving the session to update to the most recent version.")
+
+    maps = session_json["mapping"]["connections"] if version <= 2.1 else session_json["mapping"]["maps"] if version <= 2.3 else session_json["maps"]
+
     session_json["maps"] = []
     session_json["description"] = ""
     session_json["views"] = [] # Unable to use legacy views, some fields are not present
     session_json["values"] = []
-    maps = session_json["mapping"]["connections"] if version <= 2.1 else session_json["mapping"]["maps"] if version <= 2.3 else session_json["maps"]
 
     for map in maps:
         newMap = {"sources": [], "destinations": []}
         # Add sources and destinations
-        if version == 2.0:
-            srcKey = "source"
-            dstKey = "destination"
-        elif version == 2.1:
-            srcKey = "src"
-            dstKey = "dest"
-        else: # 2.2 and 2.3
+        if version >= 2.4:
             srcKey = "sources"
             dstKey = "destinations"
-        for src in map[srcKey]:
-            srcName = src[1:] if version <= 2.2 else src["name"]
-            newMap["sources"].append(srcName)
-        for dst in map[dstKey]:
-            dstName = dst[1:] if version <= 2.2 else dst["name"]
-            newMap["destinations"].append(dstName)
-        # Add other fields
+            newMap["sources"] = map["sources"]
+            newMap["destinations"] = map["destinations"]
+        else:
+            if version == 2.0:
+                srcKey = "source"
+                dstKey = "destination"
+            elif version == 2.1:
+                srcKey = "src"
+                dstKey = "dest"
+            else: # 2.2 or 2.3
+                srcKey = "sources"
+                dstKey = "destinations"
+            for src in map[srcKey]:
+                srcName = src[1:] if version <= 2.2 else src["name"]
+                newMap["sources"].append(srcName)
+            for dst in map[dstKey]:
+                dstName = dst[1:] if version <= 2.2 else dst["name"]
+                newMap["destinations"].append(dstName)
 
+        # Add other fields
         for key in map:
             val = map[key]
             if key == srcKey or key == dstKey:
